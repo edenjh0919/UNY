@@ -68,6 +68,16 @@ st.markdown("""
         display: inline-block;
         margin-bottom: 8px;
     }
+    .badge-category-red {
+        background-color: #FF6B6B;
+        color: #FFFFFF;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 12px;
+        display: inline-block;
+        margin-bottom: 8px;
+    }
     .notice-title { font-size: 18px; font-weight: 800; color: #1A202C; margin-bottom: 2px; }
     .notice-subtitle { font-size: 13px; color: #4A5568; margin-bottom: 12px; font-weight: 600; }
     
@@ -105,6 +115,105 @@ st.markdown("""
     }
     .stat-label { font-size: 15px; font-weight: 600; color: #2D3748; margin-bottom: 6px; }
     .stat-value { font-size: 22px; font-weight: 900; color: #000000; }
+
+    /* 알림 드롭다운 카드 스타일 */
+    .noti-item {
+        border-bottom: 1px solid #edf2f7;
+        padding: 10px 0;
+    }
+    .noti-item-urgent {
+        background-color: #fff5f5;
+        border-left: 3px solid #e53e3e;
+        padding: 8px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .noti-title {
+        font-size: 13px;
+        font-weight: bold;
+        color: #2d3748;
+    }
+    .noti-desc {
+        font-size: 12px;
+        color: #4a5568;
+        margin-top: 2px;
+    }
+    .noti-time {
+        font-size: 11px;
+        color: #a0aec0;
+        margin-top: 4px;
+    }
+
+    /* 전체 알림 전용 카드 스타일 */
+    .noti-page-card {
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        background-color: #FFFFFF;
+    }
+    .noti-page-card-read {
+        border: 1px solid #EDF2F7;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        background-color: #F7FAFC;
+        opacity: 0.75;
+    }
+    .noti-page-card-urgent {
+        border: 1.5px solid #FEB2B2;
+        border-left: 5px solid #E53E3E;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        background-color: #FFF5F5;
+    }
+
+    /* 마이페이지 & 보관함 커스텀 스타일 */
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color: #C4C4C4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        color: #555555;
+    }
+    .profile-info-label {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1A202C;
+        margin-bottom: 8px;
+    }
+    .profile-info-val {
+        font-weight: 400;
+        color: #4A5568;
+    }
+    .mypage-section-card {
+        background-color: #F8F9FA;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .mypage-card-red-border {
+        border: 1.5px solid #FF6B6B;
+        border-radius: 16px;
+        padding: 20px;
+        background-color: #FFF5F5;
+        margin-bottom: 12px;
+    }
+    .history-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #EDF2F7;
+        font-size: 14px;
+        color: #2D3748;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -119,9 +228,78 @@ def init_db():
 
 supabase = init_db()
 
+# ------------------------------------------------------------------------------
 # 세션 상태 초기화
+# ------------------------------------------------------------------------------
 if "user" not in st.session_state:
     st.session_state["user"] = None
+
+if "notifications" not in st.session_state:
+    st.session_state["notifications"] = [
+        {
+            "id": 1,
+            "is_urgent": True,
+            "title": "[긴급] 학사일정 변경 안내",
+            "desc": "[학사공지] 2026학년도 2학기 중간평가 일정이 변경되었습니다.",
+            "time": "방금 전",
+            "is_read": False
+        },
+        {
+            "id": 2,
+            "is_urgent": False,
+            "title": "[장학금] 2026학년도 2학기 교내 성적 및 맞춤 복지장학금 신청이 시작되었습니다.",
+            "desc": "신청 기한 내 구비서류를 확인 후 접수 바랍니다.",
+            "time": "1시간 전",
+            "is_read": False
+        },
+        {
+            "id": 3,
+            "is_urgent": False,
+            "title": "[인턴/채용] 2026 디자인 크리에이션 챌린지 공모전 안내",
+            "desc": "디자인 관련 공모전 참가자 모집.",
+            "time": "3시간 전",
+            "is_read": False
+        }
+    ]
+
+if "show_new_notice_pop" not in st.session_state:
+    st.session_state["show_new_notice_pop"] = True
+
+if "nav_page" not in st.session_state:
+    st.session_state["nav_page"] = "🏠  Home/대시보드"
+
+# 관심 공지 보관함 데이터
+if "saved_notices" not in st.session_state:
+    st.session_state["saved_notices"] = [
+        {
+            "id": 101,
+            "category": "인턴/채용",
+            "title": "2026 디자인 크리에이션 챌린지(DCC) 3D프린팅 제품디자인 공모전SPECIAL",
+            "site_name": "단국대-스트라타시스 첨단제조융합연구센터",
+            "summary": "1. 2026 디자인 크리에이션 챌린지(DCC) 3D프린팅 제품디자인 공모전SPECIAL\n2. 전국 대학생 대외활동 및 인턴십 공고입니다.\n3. 세부 일정 및 지원 자격은 원문 참조",
+            "keywords": ["인턴", "대외활동", "채용", "공모전"],
+            "url": "https://example.com"
+        },
+        {
+            "id": 102,
+            "category": "학사공지",
+            "title": "[안산대학교] 2026학년도 2학기 중간평가 및 주요 학사일정 안내",
+            "site_name": "안산대학교 학사지원팀",
+            "summary": "1. 2026학년도 2학기 중간평가 일정 안내입니다.\n2. 세부 교과목 시험 일정은 학과 홈페이지 확인",
+            "keywords": ["학사일정", "중간고사", "안산대"],
+            "url": "https://example.com"
+        }
+    ]
+
+# ------------------------------------------------------------------------------
+# 신규 공지 팝업 모달 함수
+# ------------------------------------------------------------------------------
+@st.dialog("🔔 [UNY] 신규 공지 알림")
+def show_new_notice_dialog(notice_title):
+    st.write(f"**{notice_title}** 공지가 등록되었습니다.")
+    if st.button("확인", use_container_width=True):
+        st.session_state["show_new_notice_pop"] = False
+        st.rerun()
 
 # ------------------------------------------------------------------------------
 # 2. 로그인 / 회원가입 화면 (비로그인 상태)
@@ -199,14 +377,71 @@ if not st.session_state["user"]:
                             st.error(f"회원가입 처리 오류: {e}")
 
 # ------------------------------------------------------------------------------
-# 3. 대시보드 화면 (로그인 완료 상태)
+# 3. 대시보드 및 메인 앱 화면 (로그인 완료 상태)
 # ------------------------------------------------------------------------------
 else:
     current_user = st.session_state["user"]
-    user_email = current_user.get("email", "사용자")
-    user_keywords = current_user.get("keywords", [])
+    user_email = current_user.get("email", "yourim@ansan.ac.kr")
+    user_name = current_user.get("name", "신유림")
+    user_school = current_user.get("school", "안산대학교")
+    user_dept = current_user.get("department", "컴퓨터공학과")
+    user_keywords = current_user.get("keywords", ["장학금", "인턴", "청년지원금"])
 
-    # 사이드바
+    notifications = st.session_state.get("notifications", [])
+
+    # 상단 벨 모양 알림 버튼
+    unread_count = sum(1 for n in notifications if not n.get("is_read", False))
+    bell_label = f"🔔 알림 ({unread_count})" if unread_count > 0 else "🔔 알림"
+
+    top_col1, top_col2 = st.columns([8, 2])
+    with top_col2:
+        with st.popover(bell_label, use_container_width=True):
+            sub_c1, sub_c2 = st.columns([1, 1])
+            with sub_c1:
+                st.markdown("### 알림")
+            with sub_c2:
+                if st.button("전체 읽음으로 표시", key="mark_all_read", use_container_width=True):
+                    for n in notifications:
+                        n["is_read"] = True
+                    st.session_state["notifications"] = notifications
+                    st.rerun()
+
+            st.markdown("---")
+
+            if not notifications:
+                st.caption("새로운 알림이 없습니다.")
+            else:
+                for noti in notifications:
+                    if noti.get("is_urgent", False):
+                        st.markdown(f"""
+                        <div class="noti-item-urgent">
+                            <div class="noti-title" style="color:#c53030;">🚨 {noti['title']}</div>
+                            <div class="noti-desc">{noti['desc']}</div>
+                            <div class="noti-time">{noti['time']}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"""
+                        <div class="noti-item">
+                            <div class="noti-title">🔔 {noti['title']}</div>
+                            <div class="noti-desc">{noti['desc']}</div>
+                            <div class="noti-time">{noti['time']}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            st.markdown("---")
+            if st.button("모든 알림 보기", key="view_all_noti", use_container_width=True):
+                st.session_state["nav_page"] = "🔔  전체 알림 목록"
+                st.rerun()
+
+    # 신규 공지 팝업 노출
+    if st.session_state.get("show_new_notice_pop", False):
+        show_new_notice_dialog("[장학금] 2026학년도 2학기 맞춤 장학금 신청")
+
+    # 사이드바 (관심 공지 보관함 복구)
+    menu_options = ["🏠  Home/대시보드", "❤️  관심 공지 보관함", "🔔  전체 알림 목록", "👤  마이페이지"]
+    default_idx = menu_options.index(st.session_state["nav_page"]) if st.session_state["nav_page"] in menu_options else 0
+
     with st.sidebar:
         col_logo1, col_logo2 = st.columns([1, 3])
         with col_logo1:
@@ -214,14 +449,16 @@ else:
         with col_logo2:
             st.markdown("<h2 style='margin:0; padding:0;'>UNY</h2>", unsafe_allow_html=True)
         
-        st.caption(f"👤 {user_email}")
+        st.caption(f"👤 {user_name}님 ({user_school})")
         st.markdown("---")
         
-        menu = st.radio(
+        selected_menu = st.radio(
             "Navigation",
-            ["🏠  Home/대시보드", "⭐  관심 키워드 관리", "✉️  이메일 알림 설정", "👤  마이페이지"],
+            menu_options,
+            index=default_idx,
             label_visibility="collapsed"
         )
+        st.session_state["nav_page"] = selected_menu
         
         st.markdown("<br><br>", unsafe_allow_html=True)
         if st.button("🚪  로그아웃", use_container_width=True):
@@ -231,8 +468,7 @@ else:
     # 통계 계산
     today_str = date.today().isoformat()
     today_collected_count = 0
-    keyword_matched_count = 0
-    notifications_sent_count = 0
+    notifications_sent_count = len(notifications)
 
     if supabase:
         try:
@@ -244,28 +480,17 @@ else:
                 res_all = supabase.table("notices").select("*").limit(30).execute()
                 today_notices = res_all.data or []
                 today_collected_count = len(today_notices)
-
-            for n in today_notices:
-                notice_tags = n.get("keywords", [])
-                notice_title = n.get("title", "")
-                if any(kw.lower() in notice_title.lower() or kw in notice_tags for kw in user_keywords):
-                    keyword_matched_count += 1
-
-            notifications_sent_count = keyword_matched_count
         except Exception:
             today_collected_count = 0
-            keyword_matched_count = 0
-            notifications_sent_count = 0
 
     # --------------------------------------------------------------------------
     # [메뉴 1] Home / 대시보드
     # --------------------------------------------------------------------------
-    if "Home/대시보드" in menu:
-        user_name = user_email.split('@')[0]
+    if "Home/대시보드" in selected_menu:
         st.markdown(f"""
             <div class="welcome-box">
-                <div class="welcome-title">안녕하세요, {user_name}님!</div>
-                <div class="welcome-sub">🎓 오늘 맞춤 공지 {keyword_matched_count}건 도착하였습니다!</div>
+                <div class="welcome-title">안녕하세요, {user_name}님! ({user_school})</div>
+                <div class="welcome-sub">🎓 오늘 도착한 맞춤 공지사항 및 축제/학사 일정을 확인하세요!</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -301,7 +526,7 @@ else:
             tags = notice.get("keywords", ["장학금", "학사공지"])
             url = notice.get("url", "#")
 
-            tags_html = "".join([f'<span class="tag-item">{t}</span>' for t in tags])
+            tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in tags])
             
             st.markdown(f"""
                 <div class="notice-card">
@@ -317,19 +542,22 @@ else:
             with col_btn1:
                 st.link_button("원문 보러가기 ↗", url, use_container_width=True)
             with col_btn2:
-                if st.button("관심 키워드 등록", key=f"kw_btn_{idx}_{title}", use_container_width=True):
-                    updated_kws = list(set(user_keywords + tags))
-                    st.session_state["user"]["keywords"] = updated_kws
-                    if supabase:
-                        try:
-                            supabase.table("users").update({"keywords": updated_kws}).eq("email", user_email).execute()
-                        except Exception as e:
-                            st.error(f"키워드 저장 중 오류가 발생했습니다: {e}")
-                    st.toast("해당 공지의 태그가 관심 키워드에 추가되었습니다!")
+                if st.button("❤️ 보관함 저장", key=f"save_btn_{idx}_{title}", use_container_width=True):
+                    new_saved = {
+                        "id": len(st.session_state["saved_notices"]) + 1,
+                        "category": cat,
+                        "title": title,
+                        "site_name": site,
+                        "summary": summary,
+                        "keywords": tags,
+                        "url": url
+                    }
+                    st.session_state["saved_notices"].append(new_saved)
+                    st.toast("관심 공지 보관함에 저장되었습니다!")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        col_stat1, col_stat2, col_stat3 = st.columns(3)
+        col_stat1, col_stat2 = st.columns(2)
         with col_stat1:
             st.markdown(f"""
                 <div class="stat-card">
@@ -341,86 +569,209 @@ else:
         with col_stat2:
             st.markdown(f"""
                 <div class="stat-card">
-                    <div class="stat-label">키워드 매칭</div>
-                    <div class="stat-value">({keyword_matched_count}건)</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-        with col_stat3:
-            st.markdown(f"""
-                <div class="stat-card">
                     <div class="stat-label">알림 발송</div>
                     <div class="stat-value">({notifications_sent_count}건)</div>
                 </div>
             """, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # [메뉴 2] 관심 키워드 관리
+    # [메뉴 2] 관심 공지 보관함 (하트 보관함 화면)
     # --------------------------------------------------------------------------
-    elif "관심 키워드 관리" in menu:
-        st.title("⭐ 관심 키워드 관리")
-        st.write("현재 등록된 관심 키워드 목록입니다.")
-        
-        if user_keywords:
-            st.subheader("등록된 키워드 (클릭하여 삭제)")
-            kw_cols = st.columns(min(len(user_keywords), 6))
-            for i, kw in enumerate(user_keywords):
-                with kw_cols[i % 6]:
-                    if st.button(f"❌ {kw}", key=f"del_kw_{kw}"):
-                        user_keywords.remove(kw)
-                        st.session_state["user"]["keywords"] = user_keywords
-                        if supabase:
-                            try:
-                                supabase.table("users").update({"keywords": user_keywords}).eq("email", user_email).execute()
-                            except Exception as e:
-                                st.error(f"삭제 중 오류: {e}")
-                        st.toast(f"'{kw}' 키워드가 삭제되었습니다.")
-                        st.rerun()
-        else:
-            st.info("등록된 키워드가 없습니다.")
-        
+    elif "관심 공지 보관함" in selected_menu:
+        st.markdown("<h1 style='font-size: 28px; font-weight: 800;'>❤️ 관심 공지 보관함</h1>", unsafe_allow_html=True)
+        st.caption("저장해둔 맞춤 공지사항 목록입니다.")
         st.markdown("---")
-        with st.form("keyword_form"):
-            new_kw = st.text_input("새 키워드 추가 (쉼표로 구분)", placeholder="알바, 봉사활동, 공모전")
-            btn_update_kw = st.form_submit_button("키워드 추가")
-            
-            if btn_update_kw:
-                added_kws = [k.strip() for k in new_kw.split(",") if k.strip()]
-                if added_kws:
-                    updated_kws = list(set(user_keywords + added_kws))
-                    if supabase:
-                        try:
-                            supabase.table("users").update({"keywords": updated_kws}).eq("email", user_email).execute()
-                        except Exception as e:
-                            st.error(f"업데이트 오류: {e}")
-                    st.session_state["user"]["keywords"] = updated_kws
-                    st.success("관심 키워드가 성공적으로 추가되었습니다!")
-                    st.rerun()
-                else:
-                    st.warning("추가할 키워드를 입력해주세요.")
+
+        saved_notices = st.session_state.get("saved_notices", [])
+        if not saved_notices:
+            st.info("보관함에 저장된 관심 공지가 없습니다.")
+        else:
+            for s_idx, s_notice in enumerate(saved_notices):
+                tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in s_notice['keywords']])
+                
+                st.markdown(f"""
+                <div class="mypage-card-red-border">
+                    <span class="badge-category-red">{s_notice['category']}</span>
+                    <div style="font-size: 18px; font-weight: 800; color: #1A202C; margin-bottom: 4px;">{s_notice['title']}</div>
+                    <div style="font-size: 13px; color: #4A5568; margin-bottom: 12px; font-weight: 600;">📍 {s_notice['site_name']}</div>
+                    <div class="summary-box">{s_notice['summary']}</div>
+                    <div>{tags_html}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                sc1, sc2, _ = st.columns([1.5, 1.5, 5])
+                with sc1:
+                    st.link_button("원문 보러가기 ↗", s_notice['url'], use_container_width=True)
+                with sc2:
+                    if st.button("💔 하트 삭제", key=f"del_saved_page_{s_notice['id']}_{s_idx}", use_container_width=True):
+                        saved_notices.pop(s_idx)
+                        st.session_state["saved_notices"] = saved_notices
+                        st.toast("관심 공지 보관함에서 삭제되었습니다.")
+                        st.rerun()
 
     # --------------------------------------------------------------------------
-    # [메뉴 3] 이메일 알림 설정
+    # [메뉴 3] 전체 알림 목록 페이지
     # --------------------------------------------------------------------------
-    elif "이메일 알림 설정" in menu:
-        st.title("✉️ 이메일 알림 설정")
-        st.write(f"현재 알림 수신 이메일: **{user_email}**")
-        st.toggle("이메일 알림 활성화", value=True)
+    elif "전체 알림 목록" in selected_menu:
+        st.title("🔔 전체 알림 목록")
+        st.caption("수신된 모든 맞춤 공지 및 시스템 알림 내역입니다.")
+
+        head_col1, head_col2 = st.columns([6, 2])
+        with head_col1:
+            st.write(f"총 **{len(notifications)}**개의 알림 (미확인 **{unread_count}**개)")
+        with head_col2:
+            if st.button("✓ 전체 읽음으로 표시", key="noti_page_read_all", use_container_width=True):
+                for n in notifications:
+                    n["is_read"] = True
+                st.session_state["notifications"] = notifications
+                st.rerun()
+
+        st.markdown("---")
+
+        if not notifications:
+            st.info("도착한 알림이 없습니다.")
+        else:
+            for idx, noti in enumerate(notifications):
+                is_read = noti.get("is_read", False)
+                is_urgent = noti.get("is_urgent", False)
+                
+                if is_urgent:
+                    card_class = "noti-page-card-urgent"
+                    badge = "<span style='color:#E53E3E; font-weight:bold;'>[🚨 긴급]</span> "
+                elif is_read:
+                    card_class = "noti-page-card-read"
+                    badge = "<span style='color:#718096;'>[읽음]</span> "
+                else:
+                    card_class = "noti-page-card"
+                    badge = "<span style='color:#3182CE; font-weight:bold;'>[NEW]</span> "
+
+                st.markdown(f"""
+                <div class="{card_class}">
+                    <div style="font-size: 16px; font-weight: 700; color: #2D3748; margin-bottom: 4px;">
+                        {badge}{noti['title']}
+                    </div>
+                    <div style="font-size: 14px; color: #4A5568; margin-bottom: 8px;">
+                        {noti['desc']}
+                    </div>
+                    <div style="font-size: 12px; color: #A0AEC0;">
+                        🕒 {noti['time']}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                btn_c1, btn_c2, _ = st.columns([1.5, 1.2, 5.3])
+                with btn_c1:
+                    read_btn_label = "읽음 해제" if is_read else "읽음 표시"
+                    if st.button(read_btn_label, key=f"toggle_read_{noti['id']}_{idx}"):
+                        notifications[idx]["is_read"] = not is_read
+                        st.session_state["notifications"] = notifications
+                        st.rerun()
+                with btn_c2:
+                    if st.button("삭제", key=f"del_noti_{noti['id']}_{idx}"):
+                        notifications.pop(idx)
+                        st.session_state["notifications"] = notifications
+                        st.rerun()
+                st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
     # [메뉴 4] 마이페이지
     # --------------------------------------------------------------------------
-    elif "마이페이지" in menu:
-        st.title("👤 마이페이지")
-        st.subheader("계정 정보")
+    elif "마이페이지" in selected_menu:
+        st.markdown(f"<h1 style='font-size: 32px; font-weight: 800;'>안녕하세요, {user_name}님!</h1>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # 1. 프로필 영역
+        prof_col1, prof_col2, prof_col3 = st.columns([1.2, 5, 0.5])
+        with prof_col1:
+            st.markdown("""
+            <div class="profile-avatar">
+                👤
+            </div>
+            """, unsafe_allow_html=True)
+        with prof_col2:
+            st.markdown(f"""
+            <div style="line-height: 1.8;">
+                <div class="profile-info-label">이름: <span class="profile-info-val">{user_name}</span></div>
+                <div class="profile-info-label">이메일: <span class="profile-info-val">{user_email}</span></div>
+                <div class="profile-info-label">학교: <span class="profile-info-val">{user_school}</span></div>
+                <div class="profile-info-label">소속 학과: <span class="profile-info-val">{user_dept}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+        with prof_col3:
+            if st.button("✏️", key="edit_name"): st.toast("이름 수정")
+            if st.button("✏️", key="edit_email"): st.toast("이메일 수정")
+            if st.button("✏️", key="edit_school"): st.toast("학교 수정")
+            if st.button("✏️", key="edit_dept"): st.toast("학과 수정")
+
+        st.markdown("<br><br>", unsafe_allow_html=True)
+
+        # 2. 관심 공지 보관함 (마이페이지 내 표시)
+        st.markdown("<h3 style='font-size: 20px; font-weight: 800;'>❤️ 관심 공지 보관함</h3>", unsafe_allow_html=True)
         
-        col_info1, col_info2 = st.columns(2)
-        with col_info1:
-            st.text_input("이메일 주소", value=user_email, disabled=True)
-        with col_info2:
-            st.text_area("등록된 관심 키워드", value=", ".join(user_keywords) if user_keywords else "없음", disabled=True)
+        saved_notices = st.session_state.get("saved_notices", [])
+        if not saved_notices:
+            st.info("보관함에 저장된 관심 공지가 없습니다.")
+        else:
+            for s_idx, s_notice in enumerate(saved_notices):
+                tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in s_notice['keywords']])
+                
+                st.markdown(f"""
+                <div class="mypage-card-red-border">
+                    <span class="badge-category-red">{s_notice['category']}</span>
+                    <div style="font-size: 18px; font-weight: 800; color: #1A202C; margin-bottom: 4px;">{s_notice['title']}</div>
+                    <div style="font-size: 13px; color: #4A5568; margin-bottom: 12px; font-weight: 600;">📍 {s_notice['site_name']}</div>
+                    <div class="summary-box">{s_notice['summary']}</div>
+                    <div>{tags_html}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                sc1, sc2, _ = st.columns([1.5, 1.5, 5])
+                with sc1:
+                    st.link_button("원문 보러가기 ↗", s_notice['url'], use_container_width=True)
+                with sc2:
+                    if st.button("💔 하트 삭제", key=f"del_saved_my_{s_notice['id']}_{s_idx}", use_container_width=True):
+                        saved_notices.pop(s_idx)
+                        st.session_state["saved_notices"] = saved_notices
+                        st.toast("관심 공지 보관함에서 삭제되었습니다.")
+                        st.rerun()
+
+        st.markdown("<br><br>", unsafe_allow_html=True)
+
+        # 3. 내 공지 수신 내역 & 알림 설정 영역
+        col_hist, col_set = st.columns([6, 4])
+        
+        with col_hist:
+            st.markdown("""
+            <div class="mypage-section-card">
+                <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">내 공지 수신 내역 (최근 30일)</h3>
+                <div class="history-row">
+                    <span>안산대 장학금 공지 - 2026.10.01</span>
+                    <span style="color: #9F7AEA;">✉️ 수신</span>
+                </div>
+                <div class="history-row">
+                    <span>안산대 인턴 채용 - 2026.09.28</span>
+                    <span style="color: #ED64A6;">📢 수신</span>
+                </div>
+                <div class="history-row" style="border-bottom: none;">
+                    <span>안산대 인턴 채용 - 2026.09.17</span>
+                    <span style="color: #9F7AEA;">✉️ 수신</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_set:
+            st.markdown("""
+            <div class="mypage-section-card" style="min-height: 190px;">
+                <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">알림 설정</h3>
+            </div>
+            """, unsafe_allow_html=True)
             
-        st.markdown("---")
-        with st.expander("🛠 세션 프로필 데이터"):
-            safe_user_data = {k: v for k, v in current_user.items() if k != "password"}
-            st.json(safe_user_data)
+            st.toggle("키워드 알림", value=True, key="toggle_kw_noti")
+            st.toggle("전체 공지 ON/OFF", value=False, key="toggle_all_noti")
+
+        # 4. 회원정보 수정/탈퇴 버튼
+        st.markdown("<br>", unsafe_allow_html=True)
+        btn_col1, btn_col2 = st.columns([7, 3])
+        with btn_col2:
+            if st.button("회원정보 수정/탈퇴", use_container_width=True, type="primary"):
+                st.toast("회원정보 수정 및 탈퇴 화면으로 이동합니다.")
