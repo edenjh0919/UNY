@@ -6,8 +6,8 @@ from supabase import create_client, Client
 load_dotenv()
 
 # ⭕ 올바른 코드: .env 파일에 적힌 '변수 이름'을 따옴표 안에 넣어주어야 합니다.
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = st.secrets.get("SUPABASE_URL") or os.getenv("SUPABASE_URL")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY") or os.getenv("SUPABASE_KEY")
 
 # 클라이언트 생성
 supabase: Client = (
