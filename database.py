@@ -23,6 +23,10 @@ def get_env_variable(key_name: str) -> str:
 SUPABASE_URL = get_env_variable("SUPABASE_URL")
 SUPABASE_KEY = get_env_variable("SUPABASE_KEY")
 
+# 🔍 [디버깅용] Streamlit Cloud 로그/화면에 실제 로드 상태 출력
+st.write(f"URL 로드 상태: {bool(SUPABASE_URL)}")
+st.write(f"KEY 로드 상태: {bool(SUPABASE_KEY)}")
+
 # Supabase 클라이언트 초기화
 supabase: Client = (
     create_client(SUPABASE_URL, SUPABASE_KEY)
