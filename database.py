@@ -1,15 +1,29 @@
 import os
+import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# .env 파일 로드
+# .env 파일 로드 (로컬 개발 환경용)
 load_dotenv()
 
-# ⭕ 올바른 코드: .env 파일에 적힌 '변수 이름'을 따옴표 안에 넣어주어야 합니다.
-SUPABASE_URL = st.secrets.get("SUPABASE_URL") or os.getenv("SUPABASE_URL")
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY") or os.getenv("SUPABASE_KEY")
+def get_env_variable(key_name: str) -> str:
+    """Streamlit Secrets 우선 참조 후, 없으면 os.getenv 참조하는 함수"""
+    try:
+        # 1. Streamlit Secrets 확인
+        if key_name in st.secrets:
+            return st.secrets[key_name]
+    except Exception:
+        # Streamlit 실행 환경이 아닌 경우(예: python database.py 직접 실행 등) 예외 처리
+        pass
+    
+    # 2. 로컬 .env 또는 시스템 환경변수 확인
+    return os.getenv(key_name)
 
-# 클라이언트 생성
+# 환경변수 불러오기
+SUPABASE_URL = get_env_variable("SUPABASE_URL")
+SUPABASE_KEY = get_env_variable("SUPABASE_KEY")
+
+# Supabase 클라이언트 초기화
 supabase: Client = (
     create_client(SUPABASE_URL, SUPABASE_KEY)
     if SUPABASE_URL and SUPABASE_KEY
@@ -20,14 +34,18 @@ def get_supabase_client() -> Client:
     """Supabase 인스턴스를 반환하는 함수"""
     if not supabase:
         raise ValueError(
-            "Supabase 클라이언트가 초기화되지 않았습니다. .env 파일의 SUPABASE_URL과 SUPABASE_KEY를 확인하세요."
+            "DB 연결 실패: SUPABASE_URL 또는 SUPABASE_KEY를 찾을 수 없습니다.\n"
+            "Streamlit Cloud의 Settings -> Secrets 설정 또는 .env 파일을 확인해 주세요."
         )
     return supabase
 
-# 데이터베이스 연결 단독 테스트
+# 데이터베이스 연결 단독 테스트 (터미널에서 python database.py 실행 시)
 if __name__ == "__main__":
     try:
         print("🔍 Supabase 연결 테스트 중...")
+        print(f"URL 로드 상태: {'성공' if SUPABASE_URL else '실패 (None)'}")
+        print(f"KEY 로드 상태: {'성공' if SUPABASE_KEY else '실패 (None)'}")
+        
         client = get_supabase_client()
         
         # 'notices' 테이블 연결 테스트
