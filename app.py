@@ -348,17 +348,34 @@ if not st.session_state["user"]:
             with st.form("signup_form"):
                 new_email = st.text_input("이메일 주소", placeholder="example@email.com")
                 new_password = st.text_input("비밀번호", type="password")
+                
+                # 학교 선택 드롭다운 추가 (필요에 따라 목록 추가/수정 가능)
+                school_options = ["안산대학교", "단국대학교", "가천대학교", "한양대학교", "기타 (직접 입력)"]
+                selected_school = st.selectbox("학교 선택", school_options)
+                
+                # '기타' 선택 시 직접 입력받을 필드
+                custom_school = ""
+                if selected_school == "기타 (직접 입력)":
+                    custom_school = st.text_input("학교 이름을 직접 입력해주세요", placeholder="예: 서울대학교")
+                
+                new_dept = st.text_input("학과 입력", placeholder="예: 컴퓨터공학과")
                 new_keywords = st.text_input("관심 키워드 (쉼표 구분)", placeholder="장학금, 인턴, 청년지원금")
+                
                 btn_signup = st.form_submit_button("회원가입 완료", use_container_width=True)
                 
                 if btn_signup:
                     clean_new_email = new_email.strip().lower()
                     clean_new_password = new_password.strip()
+                    
+                    # 최종 저장할 학교명 결정
+                    final_school = custom_school.strip() if selected_school == "기타 (직접 입력)" else selected_school
 
                     if not clean_new_email or "@" not in clean_new_email:
                         st.warning("올바른 이메일 주소를 입력해주세요.")
                     elif not clean_new_password:
                         st.warning("비밀번호를 입력해주세요.")
+                    elif selected_school == "기타 (직접 입력)" and not final_school:
+                        st.warning("학교 이름을 입력해주세요.")
                     elif supabase:
                         try:
                             exist = supabase.table("users").select("id").eq("email", clean_new_email).execute()
@@ -369,6 +386,8 @@ if not st.session_state["user"]:
                                 new_user = {
                                     "email": clean_new_email,
                                     "password": clean_new_password,
+                                    "school": final_school,
+                                    "department": new_dept.strip(),
                                     "keywords": kw_list
                                 }
                                 supabase.table("users").insert(new_user).execute()
