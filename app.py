@@ -330,94 +330,14 @@ top_col1, top_col2 = st.columns([5, 5])
 with top_col2:
     if not is_logged_in:
         btn_c1, btn_c2 = st.columns([1, 1])
-        
-        # [상단 로그인 팝오버]
         with btn_c1:
-            with st.popover("🔑 로그인", use_container_width=True):
-                st.markdown("### 🔑 로그인")
-                with st.form("top_login_form"):
-                    login_email = st.text_input("이메일 주소", placeholder="example@email.com")
-                    login_password = st.text_input("비밀번호", type="password")
-                    btn_login = st.form_submit_button("로그인", use_container_width=True)
-                    
-                    if btn_login:
-                        clean_login_email = login_email.strip().lower()
-                        clean_login_password = login_password.strip()
-
-                        if not clean_login_email or not clean_login_password:
-                            st.warning("이메일과 비밀번호를 모두 입력해주세요.")
-                        elif supabase:
-                            try:
-                                res = supabase.table("users").select("*").eq("email", clean_login_email).execute()
-                                if res.data:
-                                    user_data = res.data[0]
-                                    if user_data.get("password") == clean_login_password:
-                                        st.session_state["user"] = user_data
-                                        st.success("로그인 성공!")
-                                        st.rerun()
-                                    else:
-                                        st.error("비밀번호가 일치하지 않습니다.")
-                                else:
-                                    st.error("등록되지 않은 이메일입니다.")
-                            except Exception as e:
-                                st.error(f"로그인 처리 오류: {e}")
-                        else:
-                            st.error("DB에 연결할 수 없습니다. .env 환경변수를 확인해주세요.")
-
-        # [상단 회원가입 팝오버]
+            if st.button("🔑 로그인", use_container_width=True):
+                st.session_state["nav_page"] = "🔑  로그인"
+                st.rerun()
         with btn_c2:
-            with st.popover("📝 회원가입", use_container_width=True):
-                st.markdown("### 📝 회원가입")
-                with st.form("top_signup_form"):
-                    new_name = st.text_input("이름 입력", placeholder="홍길동")
-                    new_email = st.text_input("이메일 주소", placeholder="example@email.com")
-                    new_password = st.text_input("비밀번호", type="password")
-                    
-                    school_options = ["안산대학교", "단국대학교", "가천대학교", "한양대학교", "기타 (직접 입력)"]
-                    selected_school = st.selectbox("학교 선택", school_options)
-                    
-                    custom_school = ""
-                    if selected_school == "기타 (직접 입력)":
-                        custom_school = st.text_input("학교 이름을 직접 입력해주세요", placeholder="예: 서울대학교")
-                    
-                    new_dept = st.text_input("학과 입력", placeholder="예: 컴퓨터공학과")
-                    new_keywords = st.text_input("관심 키워드 (쉼표 구분)", placeholder="장학금, 인턴, 청년지원금")
-                    
-                    btn_signup = st.form_submit_button("회원가입 완료", use_container_width=True)
-                    
-                    if btn_signup:
-                        clean_new_name = new_name.strip()
-                        clean_new_email = new_email.strip().lower()
-                        clean_new_password = new_password.strip()
-                        final_school = custom_school.strip() if selected_school == "기타 (직접 입력)" else selected_school
-
-                        if not clean_new_name:
-                            st.warning("이름을 입력해주세요.")
-                        elif not clean_new_email or "@" not in clean_new_email:
-                            st.warning("올바른 이메일 주소를 입력해주세요.")
-                        elif not clean_new_password:
-                            st.warning("비밀번호를 입력해주세요.")
-                        elif selected_school == "기타 (직접 입력)" and not final_school:
-                            st.warning("학교 이름을 입력해주세요.")
-                        elif supabase:
-                            try:
-                                exist = supabase.table("users").select("id").eq("email", clean_new_email).execute()
-                                if exist.data:
-                                    st.warning("이미 가입된 이메일입니다.")
-                                else:
-                                    kw_list = list(set([k.strip() for k in new_keywords.split(",") if k.strip()]))
-                                    new_user = {
-                                        "name": clean_new_name,
-                                        "email": clean_new_email,
-                                        "password": clean_new_password,
-                                        "university": final_school,
-                                        "department": new_dept.strip(),
-                                        "keywords": kw_list
-                                    }
-                                    supabase.table("users").insert(new_user).execute()
-                                    st.success("회원가입 완료! 로그인 해주세요.")
-                            except Exception as e:
-                                st.error(f"회원가입 처리 오류: {e}")
+            if st.button("📝 회원가입", use_container_width=True):
+                st.session_state["nav_page"] = "📝  회원가입"
+                st.rerun()
     else:
         btn_c1, btn_c2 = st.columns([1, 1])
         
@@ -507,6 +427,7 @@ with st.sidebar:
     if is_logged_in:
         if st.button("🚪  로그아웃", use_container_width=True):
             st.session_state["user"] = None
+            st.session_state["nav_page"] = "🏠  Home/대시보드"
             st.rerun()
 
 # 통계 계산
@@ -528,7 +449,7 @@ if supabase:
         today_collected_count = 0
 
 # ------------------------------------------------------------------------------
-# [메뉴 1] Home / 대시보드
+# [페이지 1] Home / 대시보드
 # ------------------------------------------------------------------------------
 if "Home/대시보드" in selected_menu:
     welcome_text = f"안녕하세요, {user_name}님! ({user_school})" if is_logged_in else "안녕하세요! UNY에 오신 것을 환영합니다."
@@ -623,14 +544,17 @@ if "Home/대시보드" in selected_menu:
         """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
-# [메뉴 2] 관심 공지 보관함 (하트 보관함 화면)
+# [페이지 2] 관심 공지 보관함
 # ------------------------------------------------------------------------------
 elif "관심 공지 보관함" in selected_menu:
     st.markdown("<h1 style='font-size: 28px; font-weight: 800;'>❤️ 관심 공지 보관함</h1>", unsafe_allow_html=True)
     
     if not is_logged_in:
         st.warning("🔒 관심 공지 보관함은 로그인 후 이용하실 수 있습니다.")
-        st.info("상단 우측의 **🔑 로그인** 버튼을 이용해 로그인해주세요.")
+        st.info("로그인하여 저장해둔 공지를 확인해보세요.")
+        if st.button("🔑 로그인 페이지로 이동", type="primary"):
+            st.session_state["nav_page"] = "🔑  로그인"
+            st.rerun()
     else:
         st.caption("저장해둔 맞춤 공지사항 목록입니다.")
         st.markdown("---")
@@ -663,13 +587,15 @@ elif "관심 공지 보관함" in selected_menu:
                         st.rerun()
 
 # ------------------------------------------------------------------------------
-# [메뉴 3] 전체 알림 목록 페이지
+# [페이지 3] 전체 알림 목록 페이지
 # ------------------------------------------------------------------------------
 elif "전체 알림 목록" in selected_menu:
     if not is_logged_in:
         st.title("🔔 전체 알림 목록")
         st.warning("🔒 알림 내역 기능은 로그인 후 이용하실 수 있습니다.")
-        st.info("상단 우측의 **🔑 로그인** 버튼을 이용해 로그인해주세요.")
+        if st.button("🔑 로그인 페이지로 이동", type="primary"):
+            st.session_state["nav_page"] = "🔑  로그인"
+            st.rerun()
     else:
         st.title("🔔 전체 알림 목록")
         st.caption("수신된 모든 맞춤 공지 및 시스템 알림 내역입니다.")
@@ -732,13 +658,15 @@ elif "전체 알림 목록" in selected_menu:
                 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
-# [메뉴 4] 마이페이지
+# [페이지 4] 마이페이지
 # ------------------------------------------------------------------------------
 elif "마이페이지" in selected_menu:
     if not is_logged_in:
         st.markdown("<h1 style='font-size: 32px; font-weight: 800;'>👤 마이페이지</h1>", unsafe_allow_html=True)
         st.warning("🔒 마이페이지는 로그인 후 이용하실 수 있습니다.")
-        st.info("상단 우측의 **🔑 로그인** 버튼을 통해 로그인해주세요.")
+        if st.button("🔑 로그인 페이지로 이동", type="primary"):
+            st.session_state["nav_page"] = "🔑  로그인"
+            st.rerun()
     else:
         st.markdown(f"<h1 style='font-size: 32px; font-weight: 800;'>안녕하세요, {user_name}님!</h1>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -838,3 +766,130 @@ elif "마이페이지" in selected_menu:
         with btn_col2:
             if st.button("회원정보 수정/탈퇴", use_container_width=True, type="primary"):
                 st.toast("회원정보 수정 및 탈퇴 화면으로 이동합니다.")
+
+# ------------------------------------------------------------------------------
+# [전용 페이지 5] 회원가입 독립 페이지
+# ------------------------------------------------------------------------------
+elif "회원가입" in selected_menu:
+    top_nav1, top_nav2 = st.columns([8, 2])
+    with top_nav2:
+        if st.button("🏠 홈으로 돌아가기", use_container_width=True):
+            st.session_state["nav_page"] = "🏠  Home/대시보드"
+            st.rerun()
+
+    st.markdown("<h2 style='text-align: center; font-weight: 800;'>📝 UNY 회원가입</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666;'>맞춤형 공지 및 알림 서비스를 위해 회원정보를 입력해주세요.</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.form("signup_page_form"):
+            new_name = st.text_input("이름 입력", placeholder="홍길동")
+            new_email = st.text_input("이메일 주소", placeholder="example@email.com")
+            new_password = st.text_input("비밀번호", type="password")
+            
+            school_options = ["안산대학교", "단국대학교", "가천대학교", "한양대학교", "기타 (직접 입력)"]
+            selected_school = st.selectbox("학교 선택", school_options)
+            
+            custom_school = ""
+            if selected_school == "기타 (직접 입력)":
+                custom_school = st.text_input("학교 이름을 직접 입력해주세요", placeholder="예: 서울대학교")
+            
+            new_dept = st.text_input("학과 입력", placeholder="예: 컴퓨터공학과")
+            new_keywords = st.text_input("관심 키워드 (쉼표 구분)", placeholder="장학금, 인턴, 청년지원금")
+            
+            btn_signup = st.form_submit_button("회원가입 완료", use_container_width=True, type="primary")
+            
+            if btn_signup:
+                clean_new_name = new_name.strip()
+                clean_new_email = new_email.strip().lower()
+                clean_new_password = new_password.strip()
+                final_school = custom_school.strip() if selected_school == "기타 (직접 입력)" else selected_school
+
+                if not clean_new_name:
+                    st.warning("이름을 입력해주세요.")
+                elif not clean_new_email or "@" not in clean_new_email:
+                    st.warning("올바른 이메일 주소를 입력해주세요.")
+                elif not clean_new_password:
+                    st.warning("비밀번호를 입력해주세요.")
+                elif selected_school == "기타 (직접 입력)" and not final_school:
+                    st.warning("학교 이름을 입력해주세요.")
+                elif supabase:
+                    try:
+                        exist = supabase.table("users").select("id").eq("email", clean_new_email).execute()
+                        if exist.data:
+                            st.warning("이미 가입된 이메일입니다.")
+                        else:
+                            kw_list = list(set([k.strip() for k in new_keywords.split(",") if k.strip()]))
+                            new_user = {
+                                "name": clean_new_name,
+                                "email": clean_new_email,
+                                "password": clean_new_password,
+                                "university": final_school,
+                                "department": new_dept.strip(),
+                                "keywords": kw_list
+                            }
+                            supabase.table("users").insert(new_user).execute()
+                            st.success("🎉 회원가입이 완료되었습니다! 로그인 화면으로 이동합니다.")
+                            st.session_state["nav_page"] = "🔑  로그인"
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"회원가입 처리 오류: {e}")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center;'>이미 계정이 있으신가요?</p>", unsafe_allow_html=True)
+        if st.button("🔑 로그인하러 가기", use_container_width=True):
+            st.session_state["nav_page"] = "🔑  로그인"
+            st.rerun()
+
+# ------------------------------------------------------------------------------
+# [전용 페이지 6] 로그인 독립 페이지
+# ------------------------------------------------------------------------------
+elif "로그인" in selected_menu:
+    top_nav1, top_nav2 = st.columns([8, 2])
+    with top_nav2:
+        if st.button("🏠 홈으로 돌아가기", use_container_width=True):
+            st.session_state["nav_page"] = "🏠  Home/대시보드"
+            st.rerun()
+
+    st.markdown("<h2 style='text-align: center; font-weight: 800;'>🔑 UNY 로그인</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666;'>서비스를 이용하시려면 로그인해주세요.</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.form("login_page_form"):
+            login_email = st.text_input("이메일 주소", placeholder="example@email.com")
+            login_password = st.text_input("비밀번호", type="password")
+            btn_login = st.form_submit_button("로그인", use_container_width=True, type="primary")
+            
+            if btn_login:
+                clean_login_email = login_email.strip().lower()
+                clean_login_password = login_password.strip()
+
+                if not clean_login_email or not clean_login_password:
+                    st.warning("이메일과 비밀번호를 모두 입력해주세요.")
+                elif supabase:
+                    try:
+                        res = supabase.table("users").select("*").eq("email", clean_login_email).execute()
+                        if res.data:
+                            user_data = res.data[0]
+                            if user_data.get("password") == clean_login_password:
+                                st.session_state["user"] = user_data
+                                st.success("로그인 성공!")
+                                st.session_state["nav_page"] = "🏠  Home/대시보드"
+                                st.rerun()
+                            else:
+                                st.error("비밀번호가 일치하지 않습니다.")
+                        else:
+                            st.error("등록되지 않은 이메일입니다.")
+                    except Exception as e:
+                        st.error(f"로그인 처리 오류: {e}")
+                else:
+                    st.error("DB에 연결할 수 없습니다. .env 환경변수를 확인해주세요.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center;'>아직 회원이 아니신가요?</p>", unsafe_allow_html=True)
+        if st.button("📝 회원가입하러 가기", use_container_width=True):
+            st.session_state["nav_page"] = "📝  회원가입"
+            st.rerun()
