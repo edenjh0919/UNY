@@ -302,271 +302,293 @@ def show_new_notice_dialog(notice_title):
         st.rerun()
 
 # ------------------------------------------------------------------------------
-# 2. 로그인 / 회원가입 화면 (비로그인 상태)
+# 메인 앱 레이아웃
 # ------------------------------------------------------------------------------
-if not st.session_state["user"]:
-    st.markdown("<h2 style='text-align: center;'>🎓 UNY</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #666;'>서비스를 이용하시려면 로그인해주세요.</p>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        tab_login, tab_signup = st.tabs(["🔑 로그인", "📝 회원가입"])
-        
-        # [탭 1] 로그인
-        with tab_login:
-            with st.form("login_form"):
-                login_email = st.text_input("이메일 주소", placeholder="example@email.com")
-                login_password = st.text_input("비밀번호", type="password")
-                btn_login = st.form_submit_button("로그인", use_container_width=True)
-                
-                if btn_login:
-                    clean_login_email = login_email.strip().lower()
-                    clean_login_password = login_password.strip()
+current_user = st.session_state["user"]
+is_logged_in = current_user is not None
 
-                    if not clean_login_email or not clean_login_password:
-                        st.warning("이메일과 비밀번호를 모두 입력해주세요.")
-                    elif supabase:
-                        try:
-                            res = supabase.table("users").select("*").eq("email", clean_login_email).execute()
-                            if res.data:
-                                user_data = res.data[0]
-                                if user_data.get("password") == clean_login_password:
-                                    st.session_state["user"] = user_data
-                                    st.success("로그인 성공!")
-                                    st.rerun()
-                                else:
-                                    st.error("비밀번호가 일치하지 않습니다.")
-                            else:
-                                st.error("등록되지 않은 이메일입니다.")
-                        except Exception as e:
-                            st.error(f"로그인 처리 오류: {e}")
-                    else:
-                        st.error("DB에 연결할 수 없습니다. .env 환경변수를 확인해주세요.")
-        
-        # [탭 2] 회원가입
-        with tab_signup:
-            with st.form("signup_form"):
-                new_name = st.text_input("이름 입력", placeholder="홍길동")
-                new_email = st.text_input("이메일 주소", placeholder="example@email.com")
-                new_password = st.text_input("비밀번호", type="password")
-                
-                # 학교 선택 드롭다운 추가 (필요에 따라 목록 추가/수정 가능)
-                school_options = ["안산대학교", "단국대학교", "가천대학교", "한양대학교", "기타 (직접 입력)"]
-                selected_school = st.selectbox("학교 선택", school_options)
-                
-                # '기타' 선택 시 직접 입력받을 필드
-                custom_school = ""
-                if selected_school == "기타 (직접 입력)":
-                    custom_school = st.text_input("학교 이름을 직접 입력해주세요", placeholder="예: 서울대학교")
-                
-                new_dept = st.text_input("학과 입력", placeholder="예: 컴퓨터공학과")
-                new_keywords = st.text_input("관심 키워드 (쉼표 구분)", placeholder="장학금, 인턴, 청년지원금")
-                
-                btn_signup = st.form_submit_button("회원가입 완료", use_container_width=True)
-                
-                if btn_signup:
-                    clean_new_name = new_name.strip()
-                    clean_new_email = new_email.strip().lower()
-                    clean_new_password = new_password.strip()
-                    
-                    # 최종 저장할 학교명 결정
-                    final_school = custom_school.strip() if selected_school == "기타 (직접 입력)" else selected_school
-
-                    if not clean_new_name:
-                        st.warning("이름을 입력해주세요.")
-                    elif not clean_new_email or "@" not in clean_new_email:
-                        st.warning("올바른 이메일 주소를 입력해주세요.")
-                    elif not clean_new_password:
-                        st.warning("비밀번호를 입력해주세요.")
-                    elif selected_school == "기타 (직접 입력)" and not final_school:
-                        st.warning("학교 이름을 입력해주세요.")
-                    elif supabase:
-                        try:
-                            exist = supabase.table("users").select("id").eq("email", clean_new_email).execute()
-                            if exist.data:
-                                st.warning("이미 가입된 이메일입니다.")
-                            else:
-                                kw_list = list(set([k.strip() for k in new_keywords.split(",") if k.strip()]))
-                                new_user = {
-                                    "name": clean_new_name,
-                                    "email": clean_new_email,
-                                    "password": clean_new_password,
-                                    "university": final_school,
-                                    "department": new_dept.strip(),
-                                    "keywords": kw_list
-                                }
-                                supabase.table("users").insert(new_user).execute()
-                                st.success("회원가입이 완료되었습니다! 로그인 탭에서 로그인 해주세요.")
-                        except Exception as e:
-                            st.error(f"회원가입 처리 오류: {e}")
-
-# ------------------------------------------------------------------------------
-# 3. 대시보드 및 메인 앱 화면 (로그인 완료 상태)
-# ------------------------------------------------------------------------------
-else:
-    current_user = st.session_state["user"]
-    user_email = current_user.get("email", "yourim@ansan.ac.kr")
-    user_name = current_user.get("name", "신유림")
-    user_school = current_user.get("university", "안산대학교")
-    user_dept = current_user.get("department", "컴퓨터공학과")
+if is_logged_in:
+    user_email = current_user.get("email", "")
+    user_name = current_user.get("name", "회원")
+    user_school = current_user.get("university", "학교 미지정")
+    user_dept = current_user.get("department", "학과 미지정")
     user_keywords = current_user.get("keywords", ["장학금", "인턴", "청년지원금"])
+else:
+    user_email = ""
+    user_name = "방문자"
+    user_school = "대학생"
+    user_dept = ""
+    user_keywords = ["장학금", "인턴", "청년지원금"]
 
-    notifications = st.session_state.get("notifications", [])
+notifications = st.session_state.get("notifications", [])
 
-    # 상단 벨 모양 알림 버튼
-    unread_count = sum(1 for n in notifications if not n.get("is_read", False))
-    bell_label = f"🔔 알림 ({unread_count})" if unread_count > 0 else "🔔 알림"
+# ------------------------------------------------------------------------------
+# 상단 우측 헤더 (로그인 / 회원가입 / 계정 / 알림)
+# ------------------------------------------------------------------------------
+top_col1, top_col2 = st.columns([5, 5])
 
-    top_col1, top_col2 = st.columns([8, 2])
-    with top_col2:
-        with st.popover(bell_label, use_container_width=True):
-            sub_c1, sub_c2 = st.columns([1, 1])
-            with sub_c1:
-                st.markdown("### 알림")
-            with sub_c2:
-                if st.button("전체 읽음으로 표시", key="mark_all_read", use_container_width=True):
-                    for n in notifications:
-                        n["is_read"] = True
-                    st.session_state["notifications"] = notifications
+with top_col2:
+    if not is_logged_in:
+        btn_c1, btn_c2 = st.columns([1, 1])
+        
+        # [상단 로그인 팝오버]
+        with btn_c1:
+            with st.popover("🔑 로그인", use_container_width=True):
+                st.markdown("### 🔑 로그인")
+                with st.form("top_login_form"):
+                    login_email = st.text_input("이메일 주소", placeholder="example@email.com")
+                    login_password = st.text_input("비밀번호", type="password")
+                    btn_login = st.form_submit_button("로그인", use_container_width=True)
+                    
+                    if btn_login:
+                        clean_login_email = login_email.strip().lower()
+                        clean_login_password = login_password.strip()
+
+                        if not clean_login_email or not clean_login_password:
+                            st.warning("이메일과 비밀번호를 모두 입력해주세요.")
+                        elif supabase:
+                            try:
+                                res = supabase.table("users").select("*").eq("email", clean_login_email).execute()
+                                if res.data:
+                                    user_data = res.data[0]
+                                    if user_data.get("password") == clean_login_password:
+                                        st.session_state["user"] = user_data
+                                        st.success("로그인 성공!")
+                                        st.rerun()
+                                    else:
+                                        st.error("비밀번호가 일치하지 않습니다.")
+                                else:
+                                    st.error("등록되지 않은 이메일입니다.")
+                            except Exception as e:
+                                st.error(f"로그인 처리 오류: {e}")
+                        else:
+                            st.error("DB에 연결할 수 없습니다. .env 환경변수를 확인해주세요.")
+
+        # [상단 회원가입 팝오버]
+        with btn_c2:
+            with st.popover("📝 회원가입", use_container_width=True):
+                st.markdown("### 📝 회원가입")
+                with st.form("top_signup_form"):
+                    new_name = st.text_input("이름 입력", placeholder="홍길동")
+                    new_email = st.text_input("이메일 주소", placeholder="example@email.com")
+                    new_password = st.text_input("비밀번호", type="password")
+                    
+                    school_options = ["안산대학교", "단국대학교", "가천대학교", "한양대학교", "기타 (직접 입력)"]
+                    selected_school = st.selectbox("학교 선택", school_options)
+                    
+                    custom_school = ""
+                    if selected_school == "기타 (직접 입력)":
+                        custom_school = st.text_input("학교 이름을 직접 입력해주세요", placeholder="예: 서울대학교")
+                    
+                    new_dept = st.text_input("학과 입력", placeholder="예: 컴퓨터공학과")
+                    new_keywords = st.text_input("관심 키워드 (쉼표 구분)", placeholder="장학금, 인턴, 청년지원금")
+                    
+                    btn_signup = st.form_submit_button("회원가입 완료", use_container_width=True)
+                    
+                    if btn_signup:
+                        clean_new_name = new_name.strip()
+                        clean_new_email = new_email.strip().lower()
+                        clean_new_password = new_password.strip()
+                        final_school = custom_school.strip() if selected_school == "기타 (직접 입력)" else selected_school
+
+                        if not clean_new_name:
+                            st.warning("이름을 입력해주세요.")
+                        elif not clean_new_email or "@" not in clean_new_email:
+                            st.warning("올바른 이메일 주소를 입력해주세요.")
+                        elif not clean_new_password:
+                            st.warning("비밀번호를 입력해주세요.")
+                        elif selected_school == "기타 (직접 입력)" and not final_school:
+                            st.warning("학교 이름을 입력해주세요.")
+                        elif supabase:
+                            try:
+                                exist = supabase.table("users").select("id").eq("email", clean_new_email).execute()
+                                if exist.data:
+                                    st.warning("이미 가입된 이메일입니다.")
+                                else:
+                                    kw_list = list(set([k.strip() for k in new_keywords.split(",") if k.strip()]))
+                                    new_user = {
+                                        "name": clean_new_name,
+                                        "email": clean_new_email,
+                                        "password": clean_new_password,
+                                        "university": final_school,
+                                        "department": new_dept.strip(),
+                                        "keywords": kw_list
+                                    }
+                                    supabase.table("users").insert(new_user).execute()
+                                    st.success("회원가입 완료! 로그인 해주세요.")
+                            except Exception as e:
+                                st.error(f"회원가입 처리 오류: {e}")
+    else:
+        btn_c1, btn_c2 = st.columns([1, 1])
+        
+        # [로그인 후: 알림 벨 팝오버]
+        with btn_c1:
+            unread_count = sum(1 for n in notifications if not n.get("is_read", False))
+            bell_label = f"🔔 알림 ({unread_count})" if unread_count > 0 else "🔔 알림"
+            
+            with st.popover(bell_label, use_container_width=True):
+                sub_c1, sub_c2 = st.columns([1, 1])
+                with sub_c1:
+                    st.markdown("### 알림")
+                with sub_c2:
+                    if st.button("전체 읽음", key="mark_all_read", use_container_width=True):
+                        for n in notifications:
+                            n["is_read"] = True
+                        st.session_state["notifications"] = notifications
+                        st.rerun()
+
+                st.markdown("---")
+
+                if not notifications:
+                    st.caption("새로운 알림이 없습니다.")
+                else:
+                    for noti in notifications:
+                        if noti.get("is_urgent", False):
+                            st.markdown(f"""
+                            <div class="noti-item-urgent">
+                                <div class="noti-title" style="color:#c53030;">🚨 {noti['title']}</div>
+                                <div class="noti-desc">{noti['desc']}</div>
+                                <div class="noti-time">{noti['time']}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"""
+                            <div class="noti-item">
+                                <div class="noti-title">🔔 {noti['title']}</div>
+                                <div class="noti-desc">{noti['desc']}</div>
+                                <div class="noti-time">{noti['time']}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                
+                st.markdown("---")
+                if st.button("모든 알림 보기", key="view_all_noti", use_container_width=True):
+                    st.session_state["nav_page"] = "🔔  전체 알림 목록"
                     st.rerun()
 
-            st.markdown("---")
-
-            if not notifications:
-                st.caption("새로운 알림이 없습니다.")
-            else:
-                for noti in notifications:
-                    if noti.get("is_urgent", False):
-                        st.markdown(f"""
-                        <div class="noti-item-urgent">
-                            <div class="noti-title" style="color:#c53030;">🚨 {noti['title']}</div>
-                            <div class="noti-desc">{noti['desc']}</div>
-                            <div class="noti-time">{noti['time']}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-                        <div class="noti-item">
-                            <div class="noti-title">🔔 {noti['title']}</div>
-                            <div class="noti-desc">{noti['desc']}</div>
-                            <div class="noti-time">{noti['time']}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-            
-            st.markdown("---")
-            if st.button("모든 알림 보기", key="view_all_noti", use_container_width=True):
-                st.session_state["nav_page"] = "🔔  전체 알림 목록"
+        # [로그인 후: 마이페이지 버튼]
+        with btn_c2:
+            if st.button("👤 마이페이지", use_container_width=True):
+                st.session_state["nav_page"] = "👤  마이페이지"
                 st.rerun()
 
-    # 신규 공지 팝업 노출
-    if st.session_state.get("show_new_notice_pop", False):
-        show_new_notice_dialog("[장학금] 2026학년도 2학기 맞춤 장학금 신청")
+# 신규 공지 팝업 노출 (로그인 유저 대상)
+if is_logged_in and st.session_state.get("show_new_notice_pop", False):
+    show_new_notice_dialog("[장학금] 2026학년도 2학기 맞춤 장학금 신청")
 
-    # 사이드바 (관심 공지 보관함 복구)
-    menu_options = ["🏠  Home/대시보드", "❤️  관심 공지 보관함", "🔔  전체 알림 목록", "👤  마이페이지"]
-    default_idx = menu_options.index(st.session_state["nav_page"]) if st.session_state["nav_page"] in menu_options else 0
+# ------------------------------------------------------------------------------
+# 사이드바 메뉴
+# ------------------------------------------------------------------------------
+menu_options = ["🏠  Home/대시보드", "❤️  관심 공지 보관함", "🔔  전체 알림 목록", "👤  마이페이지"]
+default_idx = menu_options.index(st.session_state["nav_page"]) if st.session_state["nav_page"] in menu_options else 0
 
-    with st.sidebar:
-        col_logo1, col_logo2 = st.columns([1, 3])
-        with col_logo1:
-            st.write("🎓")
-        with col_logo2:
-            st.markdown("<h2 style='margin:0; padding:0;'>UNY</h2>", unsafe_allow_html=True)
-        
+with st.sidebar:
+    col_logo1, col_logo2 = st.columns([1, 3])
+    with col_logo1:
+        st.write("🎓")
+    with col_logo2:
+        st.markdown("<h2 style='margin:0; padding:0;'>UNY</h2>", unsafe_allow_html=True)
+    
+    if is_logged_in:
         st.caption(f"👤 {user_name}님 ({user_school})")
-        st.markdown("---")
-        
-        selected_menu = st.radio(
-            "Navigation",
-            menu_options,
-            index=default_idx,
-            label_visibility="collapsed"
-        )
-        st.session_state["nav_page"] = selected_menu
-        
-        st.markdown("<br><br>", unsafe_allow_html=True)
+    else:
+        st.caption("👤 게스트 방문자 (비로그인)")
+
+    st.markdown("---")
+    
+    selected_menu = st.radio(
+        "Navigation",
+        menu_options,
+        index=default_idx,
+        label_visibility="collapsed"
+    )
+    st.session_state["nav_page"] = selected_menu
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if is_logged_in:
         if st.button("🚪  로그아웃", use_container_width=True):
             st.session_state["user"] = None
             st.rerun()
 
-    # 통계 계산
-    today_str = date.today().isoformat()
-    today_collected_count = 0
-    notifications_sent_count = len(notifications)
+# 통계 계산
+today_str = date.today().isoformat()
+today_collected_count = 0
+notifications_sent_count = len(notifications)
 
+if supabase:
+    try:
+        res_today = supabase.table("notices").select("*").gte("created_at", today_str).execute()
+        today_notices = res_today.data or []
+        today_collected_count = len(today_notices)
+
+        if today_collected_count == 0:
+            res_all = supabase.table("notices").select("*").limit(30).execute()
+            today_notices = res_all.data or []
+            today_collected_count = len(today_notices)
+    except Exception:
+        today_collected_count = 0
+
+# ------------------------------------------------------------------------------
+# [메뉴 1] Home / 대시보드
+# ------------------------------------------------------------------------------
+if "Home/대시보드" in selected_menu:
+    welcome_text = f"안녕하세요, {user_name}님! ({user_school})" if is_logged_in else "안녕하세요! UNY에 오신 것을 환영합니다."
+    st.markdown(f"""
+        <div class="welcome-box">
+            <div class="welcome-title">{welcome_text}</div>
+            <div class="welcome-sub">🎓 오늘 도착한 맞춤 공지사항 및 축제/학사 일정을 확인하세요!</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    category_list = ["학사공지", "장학금", "인턴/채용", "청년지원금", "전체"]
+    selected_category = st.pills("카테고리 선택", category_list, default="장학금", label_visibility="collapsed")
+
+    notices = []
     if supabase:
         try:
-            res_today = supabase.table("notices").select("*").gte("created_at", today_str).execute()
-            today_notices = res_today.data or []
-            today_collected_count = len(today_notices)
-
-            if today_collected_count == 0:
-                res_all = supabase.table("notices").select("*").limit(30).execute()
-                today_notices = res_all.data or []
-                today_collected_count = len(today_notices)
+            query = supabase.table("notices").select("*").order("created_at", desc=True)
+            if selected_category and selected_category != "전체":
+                query = query.eq("category", selected_category)
+            res = query.limit(5).execute()
+            notices = res.data or []
         except Exception:
-            today_collected_count = 0
+            pass
 
-    # --------------------------------------------------------------------------
-    # [메뉴 1] Home / 대시보드
-    # --------------------------------------------------------------------------
-    if "Home/대시보드" in selected_menu:
+    if not notices:
+        notices = [{
+            "category": selected_category if selected_category else "장학금",
+            "title": "2026 하반기 교내 장학금 신청 안내",
+            "site_name": "00대학교 교내 장학팀",
+            "summary_3lines": "1. 2026학년도 하반기 교내 성적 및 복지 장학금 신청을 접수합니다.\n2. 신청 기한은 오는 10월 15일까지입니다.\n3. 종합정보시스템을 통해 온라인 신청이 가능합니다.",
+            "keywords": ["학사공지", "장학금", "청년지원금"],
+            "url": "https://example.com"
+        }]
+
+    for idx, notice in enumerate(notices):
+        cat = notice.get("category", "장학금")
+        title = notice.get("title", "공지사항 제목")
+        site = notice.get("site_name", "출처 미상")
+        summary = notice.get("summary_3lines", "요약 내용이 없습니다.")
+        tags = notice.get("keywords", ["장학금", "학사공지"])
+        url = notice.get("url", "#")
+
+        tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in tags])
+        
         st.markdown(f"""
-            <div class="welcome-box">
-                <div class="welcome-title">안녕하세요, {user_name}님! ({user_school})</div>
-                <div class="welcome-sub">🎓 오늘 도착한 맞춤 공지사항 및 축제/학사 일정을 확인하세요!</div>
+            <div class="notice-card">
+                <span class="badge-category">{cat}</span>
+                <div class="notice-title">{title}</div>
+                <div class="notice-subtitle">{site}</div>
+                <div class="summary-box">{summary}</div>
+                <div>{tags_html}</div>
             </div>
         """, unsafe_allow_html=True)
-
-        category_list = ["학사공지", "장학금", "인턴/채용", "청년지원금", "전체"]
-        selected_category = st.pills("카테고리 선택", category_list, default="장학금", label_visibility="collapsed")
-
-        notices = []
-        if supabase:
-            try:
-                query = supabase.table("notices").select("*").order("created_at", desc=True)
-                if selected_category and selected_category != "전체":
-                    query = query.eq("category", selected_category)
-                res = query.limit(5).execute()
-                notices = res.data or []
-            except Exception:
-                pass
-
-        if not notices:
-            notices = [{
-                "category": selected_category if selected_category else "장학금",
-                "title": "2026 하반기 교내 장학금 신청 안내",
-                "site_name": "00대학교 교내 장학팀",
-                "summary_3lines": "1. 2026학년도 하반기 교내 성적 및 복지 장학금 신청을 접수합니다.\n2. 신청 기한은 오는 10월 15일까지입니다.\n3. 종합정보시스템을 통해 온라인 신청이 가능합니다.",
-                "keywords": ["학사공지", "장학금", "청년지원금"],
-                "url": "https://example.com"
-            }]
-
-        for idx, notice in enumerate(notices):
-            cat = notice.get("category", "장학금")
-            title = notice.get("title", "공지사항 제목")
-            site = notice.get("site_name", "출처 미상")
-            summary = notice.get("summary_3lines", "요약 내용이 없습니다.")
-            tags = notice.get("keywords", ["장학금", "학사공지"])
-            url = notice.get("url", "#")
-
-            tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in tags])
-            
-            st.markdown(f"""
-                <div class="notice-card">
-                    <span class="badge-category">{cat}</span>
-                    <div class="notice-title">{title}</div>
-                    <div class="notice-subtitle">{site}</div>
-                    <div class="summary-box">{summary}</div>
-                    <div>{tags_html}</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            col_btn1, col_btn2, col_empty = st.columns([1.5, 1.8, 4])
-            with col_btn1:
-                st.link_button("원문 보러가기 ↗", url, use_container_width=True)
-            with col_btn2:
-                if st.button("❤️ 보관함 저장", key=f"save_btn_{idx}_{title}", use_container_width=True):
+        
+        col_btn1, col_btn2, col_empty = st.columns([1.5, 1.8, 4])
+        with col_btn1:
+            st.link_button("원문 보러가기 ↗", url, use_container_width=True)
+        with col_btn2:
+            if st.button("❤️ 보관함 저장", key=f"save_btn_{idx}_{title}", use_container_width=True):
+                if is_logged_in:
                     new_saved = {
                         "id": len(st.session_state["saved_notices"]) + 1,
                         "category": cat,
@@ -578,65 +600,72 @@ else:
                     }
                     st.session_state["saved_notices"].append(new_saved)
                     st.toast("관심 공지 보관함에 저장되었습니다!")
+                else:
+                    st.toast("⚠️ 보관함 기능은 로그인 후 이용하실 수 있습니다.")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        col_stat1, col_stat2 = st.columns(2)
-        with col_stat1:
+    col_stat1, col_stat2 = st.columns(2)
+    with col_stat1:
+        st.markdown(f"""
+            <div class="stat-card">
+                <div class="stat-label">오늘 수집</div>
+                <div class="stat-value">({today_collected_count}건)</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with col_stat2:
+        st.markdown(f"""
+            <div class="stat-card">
+                <div class="stat-label">알림 발송</div>
+                <div class="stat-value">({notifications_sent_count}건)</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+# ------------------------------------------------------------------------------
+# [메뉴 2] 관심 공지 보관함 (하트 보관함 화면)
+# ------------------------------------------------------------------------------
+elif "관심 공지 보관함" in selected_menu:
+    st.markdown("<h1 style='font-size: 28px; font-weight: 800;'>❤️ 관심 공지 보관함</h1>", unsafe_allow_html=True)
+    st.caption("저장해둔 맞춤 공지사항 목록입니다.")
+    st.markdown("---")
+
+    saved_notices = st.session_state.get("saved_notices", [])
+    if not saved_notices:
+        st.info("보관함에 저장된 관심 공지가 없습니다.")
+    else:
+        for s_idx, s_notice in enumerate(saved_notices):
+            tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in s_notice['keywords']])
+            
             st.markdown(f"""
-                <div class="stat-card">
-                    <div class="stat-label">오늘 수집</div>
-                    <div class="stat-value">({today_collected_count}건)</div>
-                </div>
+            <div class="mypage-card-red-border">
+                <span class="badge-category-red">{s_notice['category']}</span>
+                <div style="font-size: 18px; font-weight: 800; color: #1A202C; margin-bottom: 4px;">{s_notice['title']}</div>
+                <div style="font-size: 13px; color: #4A5568; margin-bottom: 12px; font-weight: 600;">📍 {s_notice['site_name']}</div>
+                <div class="summary-box">{s_notice['summary']}</div>
+                <div>{tags_html}</div>
+            </div>
             """, unsafe_allow_html=True)
 
-        with col_stat2:
-            st.markdown(f"""
-                <div class="stat-card">
-                    <div class="stat-label">알림 발송</div>
-                    <div class="stat-value">({notifications_sent_count}건)</div>
-                </div>
-            """, unsafe_allow_html=True)
+            sc1, sc2, _ = st.columns([1.5, 1.5, 5])
+            with sc1:
+                st.link_button("원문 보러가기 ↗", s_notice['url'], use_container_width=True)
+            with sc2:
+                if st.button("💔 하트 삭제", key=f"del_saved_page_{s_notice['id']}_{s_idx}", use_container_width=True):
+                    saved_notices.pop(s_idx)
+                    st.session_state["saved_notices"] = saved_notices
+                    st.toast("관심 공지 보관함에서 삭제되었습니다.")
+                    st.rerun()
 
-    # --------------------------------------------------------------------------
-    # [메뉴 2] 관심 공지 보관함 (하트 보관함 화면)
-    # --------------------------------------------------------------------------
-    elif "관심 공지 보관함" in selected_menu:
-        st.markdown("<h1 style='font-size: 28px; font-weight: 800;'>❤️ 관심 공지 보관함</h1>", unsafe_allow_html=True)
-        st.caption("저장해둔 맞춤 공지사항 목록입니다.")
-        st.markdown("---")
-
-        saved_notices = st.session_state.get("saved_notices", [])
-        if not saved_notices:
-            st.info("보관함에 저장된 관심 공지가 없습니다.")
-        else:
-            for s_idx, s_notice in enumerate(saved_notices):
-                tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in s_notice['keywords']])
-                
-                st.markdown(f"""
-                <div class="mypage-card-red-border">
-                    <span class="badge-category-red">{s_notice['category']}</span>
-                    <div style="font-size: 18px; font-weight: 800; color: #1A202C; margin-bottom: 4px;">{s_notice['title']}</div>
-                    <div style="font-size: 13px; color: #4A5568; margin-bottom: 12px; font-weight: 600;">📍 {s_notice['site_name']}</div>
-                    <div class="summary-box">{s_notice['summary']}</div>
-                    <div>{tags_html}</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                sc1, sc2, _ = st.columns([1.5, 1.5, 5])
-                with sc1:
-                    st.link_button("원문 보러가기 ↗", s_notice['url'], use_container_width=True)
-                with sc2:
-                    if st.button("💔 하트 삭제", key=f"del_saved_page_{s_notice['id']}_{s_idx}", use_container_width=True):
-                        saved_notices.pop(s_idx)
-                        st.session_state["saved_notices"] = saved_notices
-                        st.toast("관심 공지 보관함에서 삭제되었습니다.")
-                        st.rerun()
-
-    # --------------------------------------------------------------------------
-    # [메뉴 3] 전체 알림 목록 페이지
-    # --------------------------------------------------------------------------
-    elif "전체 알림 목록" in selected_menu:
+# ------------------------------------------------------------------------------
+# [메뉴 3] 전체 알림 목록 페이지
+# ------------------------------------------------------------------------------
+elif "전체 알림 목록" in selected_menu:
+    if not is_logged_in:
+        st.title("🔔 전체 알림 목록")
+        st.warning("🔒 알림 내역 기능은 로그인 후 이용하실 수 있습니다.")
+        st.info("상단 우측의 **🔑 로그인** 버튼을 이용해 로그인해주세요.")
+    else:
         st.title("🔔 전체 알림 목록")
         st.caption("수신된 모든 맞춤 공지 및 시스템 알림 내역입니다.")
 
@@ -697,10 +726,15 @@ else:
                         st.rerun()
                 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
-    # --------------------------------------------------------------------------
-    # [메뉴 4] 마이페이지
-    # --------------------------------------------------------------------------
-    elif "마이페이지" in selected_menu:
+# ------------------------------------------------------------------------------
+# [메뉴 4] 마이페이지
+# ------------------------------------------------------------------------------
+elif "마이페이지" in selected_menu:
+    if not is_logged_in:
+        st.markdown("<h1 style='font-size: 32px; font-weight: 800;'>👤 마이페이지</h1>", unsafe_allow_html=True)
+        st.warning("🔒 마이페이지는 로그인 후 이용하실 수 있습니다.")
+        st.info("상단 우측의 **🔑 로그인** 버튼을 통해 로그인해주세요.")
+    else:
         st.markdown(f"<h1 style='font-size: 32px; font-weight: 800;'>안녕하세요, {user_name}님!</h1>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
 
