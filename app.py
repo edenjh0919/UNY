@@ -386,7 +386,7 @@ if not st.session_state["user"]:
                                 new_user = {
                                     "email": clean_new_email,
                                     "password": clean_new_password,
-                                    "school": final_school,
+                                    "university": final_school,  # school -> university 로 컬럼명 변경
                                     "department": new_dept.strip(),
                                     "keywords": kw_list
                                 }
@@ -402,7 +402,7 @@ else:
     current_user = st.session_state["user"]
     user_email = current_user.get("email", "yourim@ansan.ac.kr")
     user_name = current_user.get("name", "신유림")
-    user_school = current_user.get("school", "안산대학교")
+    user_school = current_user.get("university", "안산대학교")  # school -> university 키값 변경
     user_dept = current_user.get("department", "컴퓨터공학과")
     user_keywords = current_user.get("keywords", ["장학금", "인턴", "청년지원금"])
 
@@ -719,7 +719,7 @@ else:
         with prof_col3:
             if st.button("✏️", key="edit_name"): st.toast("이름 수정")
             if st.button("✏️", key="edit_email"): st.toast("이메일 수정")
-            if st.button("✏️", key="edit_school"): st.toast("학교 수정")
+            if st.button("✏️", key="edit_university"): st.toast("학교 수정")
             if st.button("✏️", key="edit_dept"): st.toast("학과 수정")
 
         st.markdown("<br><br>", unsafe_allow_html=True)
