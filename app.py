@@ -346,6 +346,7 @@ if not st.session_state["user"]:
         # [탭 2] 회원가입
         with tab_signup:
             with st.form("signup_form"):
+                new_name = st.text_input("이름 입력", placeholder="홍길동")
                 new_email = st.text_input("이메일 주소", placeholder="example@email.com")
                 new_password = st.text_input("비밀번호", type="password")
                 
@@ -364,13 +365,16 @@ if not st.session_state["user"]:
                 btn_signup = st.form_submit_button("회원가입 완료", use_container_width=True)
                 
                 if btn_signup:
+                    clean_new_name = new_name.strip()
                     clean_new_email = new_email.strip().lower()
                     clean_new_password = new_password.strip()
                     
                     # 최종 저장할 학교명 결정
                     final_school = custom_school.strip() if selected_school == "기타 (직접 입력)" else selected_school
 
-                    if not clean_new_email or "@" not in clean_new_email:
+                    if not clean_new_name:
+                        st.warning("이름을 입력해주세요.")
+                    elif not clean_new_email or "@" not in clean_new_email:
                         st.warning("올바른 이메일 주소를 입력해주세요.")
                     elif not clean_new_password:
                         st.warning("비밀번호를 입력해주세요.")
@@ -384,9 +388,10 @@ if not st.session_state["user"]:
                             else:
                                 kw_list = list(set([k.strip() for k in new_keywords.split(",") if k.strip()]))
                                 new_user = {
+                                    "name": clean_new_name,
                                     "email": clean_new_email,
                                     "password": clean_new_password,
-                                    "university": final_school,  # school -> university 로 컬럼명 변경
+                                    "university": final_school,
                                     "department": new_dept.strip(),
                                     "keywords": kw_list
                                 }
@@ -402,7 +407,7 @@ else:
     current_user = st.session_state["user"]
     user_email = current_user.get("email", "yourim@ansan.ac.kr")
     user_name = current_user.get("name", "신유림")
-    user_school = current_user.get("university", "안산대학교")  # school -> university 키값 변경
+    user_school = current_user.get("university", "안산대학교")
     user_dept = current_user.get("department", "컴퓨터공학과")
     user_keywords = current_user.get("keywords", ["장학금", "인턴", "청년지원금"])
 
