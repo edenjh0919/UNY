@@ -627,35 +627,40 @@ if "Home/대시보드" in selected_menu:
 # ------------------------------------------------------------------------------
 elif "관심 공지 보관함" in selected_menu:
     st.markdown("<h1 style='font-size: 28px; font-weight: 800;'>❤️ 관심 공지 보관함</h1>", unsafe_allow_html=True)
-    st.caption("저장해둔 맞춤 공지사항 목록입니다.")
-    st.markdown("---")
-
-    saved_notices = st.session_state.get("saved_notices", [])
-    if not saved_notices:
-        st.info("보관함에 저장된 관심 공지가 없습니다.")
+    
+    if not is_logged_in:
+        st.warning("🔒 관심 공지 보관함은 로그인 후 이용하실 수 있습니다.")
+        st.info("상단 우측의 **🔑 로그인** 버튼을 이용해 로그인해주세요.")
     else:
-        for s_idx, s_notice in enumerate(saved_notices):
-            tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in s_notice['keywords']])
-            
-            st.markdown(f"""
-            <div class="mypage-card-red-border">
-                <span class="badge-category-red">{s_notice['category']}</span>
-                <div style="font-size: 18px; font-weight: 800; color: #1A202C; margin-bottom: 4px;">{s_notice['title']}</div>
-                <div style="font-size: 13px; color: #4A5568; margin-bottom: 12px; font-weight: 600;">📍 {s_notice['site_name']}</div>
-                <div class="summary-box">{s_notice['summary']}</div>
-                <div>{tags_html}</div>
-            </div>
-            """, unsafe_allow_html=True)
+        st.caption("저장해둔 맞춤 공지사항 목록입니다.")
+        st.markdown("---")
 
-            sc1, sc2, _ = st.columns([1.5, 1.5, 5])
-            with sc1:
-                st.link_button("원문 보러가기 ↗", s_notice['url'], use_container_width=True)
-            with sc2:
-                if st.button("💔 하트 삭제", key=f"del_saved_page_{s_notice['id']}_{s_idx}", use_container_width=True):
-                    saved_notices.pop(s_idx)
-                    st.session_state["saved_notices"] = saved_notices
-                    st.toast("관심 공지 보관함에서 삭제되었습니다.")
-                    st.rerun()
+        saved_notices = st.session_state.get("saved_notices", [])
+        if not saved_notices:
+            st.info("보관함에 저장된 관심 공지가 없습니다.")
+        else:
+            for s_idx, s_notice in enumerate(saved_notices):
+                tags_html = "".join([f'<span class="tag-item">#{t}</span>' for t in s_notice['keywords']])
+                
+                st.markdown(f"""
+                <div class="mypage-card-red-border">
+                    <span class="badge-category-red">{s_notice['category']}</span>
+                    <div style="font-size: 18px; font-weight: 800; color: #1A202C; margin-bottom: 4px;">{s_notice['title']}</div>
+                    <div style="font-size: 13px; color: #4A5568; margin-bottom: 12px; font-weight: 600;">📍 {s_notice['site_name']}</div>
+                    <div class="summary-box">{s_notice['summary']}</div>
+                    <div>{tags_html}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                sc1, sc2, _ = st.columns([1.5, 1.5, 5])
+                with sc1:
+                    st.link_button("원문 보러가기 ↗", s_notice['url'], use_container_width=True)
+                with sc2:
+                    if st.button("💔 하트 삭제", key=f"del_saved_page_{s_notice['id']}_{s_idx}", use_container_width=True):
+                        saved_notices.pop(s_idx)
+                        st.session_state["saved_notices"] = saved_notices
+                        st.toast("관심 공지 보관함에서 삭제되었습니다.")
+                        st.rerun()
 
 # ------------------------------------------------------------------------------
 # [메뉴 3] 전체 알림 목록 페이지
